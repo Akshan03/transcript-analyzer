@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+streamlit
+openai
+instructor
+pydantic
+thefuzz
+python-dotenv
