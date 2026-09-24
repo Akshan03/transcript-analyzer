@@ -8,6 +8,7 @@ class AnswerExtraction(BaseModel):
     summary_answer: str = Field(description="A concise summary of the expert's answer.")
     exact_quote: Optional[str] = Field(description="An exact, verbatim quote from the text that supports the answer. If the answer is not discussed, return null.")
     timestamp: Optional[str] = Field(description="The exact timestamp (e.g., '01:20') associated with the quote. If not discussed, return null.")
+    is_verified: bool = Field(default=False, description="Whether the quote was verified against the source text.")
 
 class TranscriptAnalysis(BaseModel):
     expert_name: str

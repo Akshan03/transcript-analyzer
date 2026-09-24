@@ -13,7 +13,7 @@ client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 instructor_client = instructor.from_groq(client, mode=instructor.Mode.JSON)
 
 # We recommend llama3-70b-8192 or llama3-8b-8192 for fast, accurate JSON extraction
-MODEL_NAME = "llama3-70b-8192"
+MODEL_NAME = "openai/gpt-oss-120b"
 
 def extract_answers_from_transcript(transcript_json: str, expert_name: str) -> TranscriptAnalysis:
     """
@@ -33,10 +33,11 @@ def extract_answers_from_transcript(transcript_json: str, expert_name: str) -> T
     You are an expert qualitative researcher analyzing an interview transcript with {expert_name}.
     Your task is to answer the 6 interview guide questions based ONLY on the provided transcript.
     
-    CRITICAL INSTRUCTIONS:
-    - You must extract an exact, verbatim quote to support your answer.
-    - You must include the exact timestamp associated with that quote.
-    - If a question is NOT answered or discussed in the transcript, set summary_answer to 'Not discussed' and set exact_quote and timestamp to null. Do not invent an answer.
+    CRITICAL INSTRUCTIONS (FAILURE IS NOT AN OPTION):
+    1. You must extract an exact, verbatim quote to support your answer.
+    2. You must include the exact timestamp associated with that quote.
+    3. NO HALLUCINATIONS: If the transcript ends before a question is asked, or the topic is genuinely missing, you MUST set summary_answer to 'Not discussed'. 
+    4. Do NOT invent timestamps. Do NOT invent answers.
     
     Interview Guide:
     {interview_guide}
@@ -81,3 +82,24 @@ def synthesize_transcripts(all_analyses: list[dict]) -> CrossTranscriptSynthesis
     )
     
     return synthesis
+
+def chat_with_transcripts(user_query: str, all_transcripts_json: str) -> str:
+    """Handles global Q&A across all transcripts."""
+    system_prompt = f"""
+    You are an expert analyst answering questions based ONLY on the provided interview transcripts.
+    Whenever you make a claim, you MUST append a citation in the format [Expert Name - Timestamp].
+    If the answer is not in the transcripts, say "I cannot find this in the transcripts."
+    
+    Transcripts:
+    {all_transcripts_json}
+    """
+    
+    response = client.chat.completions.create(
+        model=MODEL_NAME,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_query}
+        ],
+        temperature=0.3
+    )
+    return response.choices[0].message.content
